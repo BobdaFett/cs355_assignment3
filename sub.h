@@ -5,19 +5,18 @@
 #ifndef CS355_ASSIGNMENT3_SUBPROGRAM_H
 #define CS355_ASSIGNMENT3_SUBPROGRAM_H
 #include <string>
-#include <utility>
 #include <vector>
 
 class Sub {
 public:
-  Sub(std::string name, Sub *staticParent, const int numParams,
-      const int numLocals);
+  Sub(const std::string& name, Sub *staticParent, int numParams,
+      int numLocals);
 
   /// "Calls" this subprogram. It will simply create a stack frame for it and
   /// push it to the stack.
-  void call_();
+  void call_() const;
   /// "Returns" this subprogram. It will remove the stack frame from the stack.
-  void return_();
+  void return_() const;
 
   /// Prints the current contents of the stack and display vectors in a
   /// user-friendly format.
@@ -26,11 +25,11 @@ public:
 protected:
   /// Pushes an ARI for this Sub to the stack. Returns the first index of the
   /// ARI in the stack, which can be used to update the display.
-  int pushAriToStack();
+  int pushAriToStack() const;
 
   /// Checks if the name of this Sub is visible by checking all static
   /// ancestors.
-  bool isNameVisible();
+  bool isNameVisible() const;
 
   /// The runtime stack. Stores all the ARIs.
   static std::vector<int> stack;

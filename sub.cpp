@@ -3,16 +3,16 @@
 //
 
 #include "sub.h"
-#include "nameRegistry.h"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include "nameRegistry.h"
 
 std::vector<int> Sub::stack{};
 std::vector<int> Sub::display{};
 
-Sub::Sub(std::string name, Sub *staticParent, const int numParams,
+Sub::Sub(const std::string& name, Sub *staticParent, const int numParams,
          const int numLocals)
     : name(name), staticParent(staticParent), numParams(numParams),
       numLocals(numLocals), staticDepth(0) {
@@ -31,14 +31,14 @@ Sub::Sub(std::string name, Sub *staticParent, const int numParams,
   NameRegistry::addName(name);
 }
 
-void Sub::call_() {
+void Sub::call_() const {
   // Check if this is the main program or if the name is visible.
   if (name == "main_" || isNameVisible()) {
-    int index = pushAriToStack();
+    const int index = pushAriToStack();
 
     // Update the display stack with the current Sub's ARI index
     // If the depth doesn't exist, create it.
-    if (display.size() > staticDepth) {
+    if (staticDepth < display.size()) {
       display[staticDepth] = index;
     } else {
       // It's a prerequisite that the depth cannot be more than one
@@ -51,12 +51,12 @@ void Sub::call_() {
   }
 }
 
-bool Sub::isNameVisible() {
+bool Sub::isNameVisible() const {
   // Check this Sub's static ancestors for a child with the same name.
   // If there is no child with the same name, return false.
-  Sub *checkParent = staticParent;
+  const Sub *checkParent = staticParent;
   while (checkParent != nullptr) {
-    for (Sub *child : staticParent->children) {
+    for (const Sub *child : staticParent->children) {
       if (child->name == name) {
         return true;
       }
@@ -68,45 +68,46 @@ bool Sub::isNameVisible() {
   return false;
 }
 
-int Sub::pushAriToStack() {
+int Sub::pushAriToStack() const {
   // Store the name in a map that contains the names of all current
   // subprograms. This might be better to store as a member variable, double
   // check the assignment. First, get the name's index.
-  int nameIdx = NameRegistry::getIndex(name);
+  const int nameIdx = NameRegistry::getIndex(name);
+  // Next, get the current size of the stack - that will be the dynamic link.
+  const int displayIdx = stack.size();
+  const int dynLink = stack.size() - 1;
   // Push the name index to the stack. We can retrieve the name from the index
   // when needed.
   stack.push_back(nameIdx);
   // Save the current value stored in the display at this Sub's static depth.
   // A value of -1 indicates that there was no previous data at this depth.
-  int displayLink = display.size() > staticDepth ? display[staticDepth] : -1;
+  const int displayLink = staticDepth < display.size() ? display[staticDepth] : 0;
   stack.push_back(displayLink);
   // Save the current dynamic link, which is the index at the former top
   // element of the stack.
-  int dynLink = stack.size() > 0 ? stack.size() - 1 : 0;
   stack.push_back(dynLink);
   // Push nonsense values, one for each parameter.
-  int numArgsLocals = numParams + numLocals;
+  const int numArgsLocals = numParams + numLocals;
   for (int i = 0; i < numArgsLocals; i++) {
     stack.push_back(i);
   }
 
-  for (int i : stack) {
+  for (const int i : stack) {
     std::cout << i << " ";
   }
   std::cout << std::endl;
 
   // The first index of the ARI in the stack is the name of the Sub.
-  return nameIdx;
+  return displayIdx;
 }
 
-void Sub::return_() {
+void Sub::return_() const {
   // Remove ARI of this Sub from the stack and reflect in the display.
-  int numArgsLocals = numParams + numLocals;
+  const int numArgsLocals = numParams + numLocals;
   for (int i = 0; i < numArgsLocals; i++)
     stack.pop_back(); // pop all locals and parameters
-  int dynLink = stack.back();
   stack.pop_back(); // pop dynamic link
-  int displayLink = stack.back();
+  const int displayLink = stack.back();
   stack.pop_back(); // pop display link
   stack.pop_back(); // pop name index
 
@@ -128,7 +129,7 @@ void Sub::printStacks() {
   // each of the stack and display elements, including mapping the names of
   // each Sub in the stack and the column headers. We'll convert everything
   // into strings for easier formatting later.
-  std::string stackHeader = "Stack", displayHeader = "Display";
+  const std::string stackHeader = "Stack", displayHeader = "Display";
   int maxStackWidth = stackHeader.size(),
       maxDisplayWidth = displayHeader.size();
   std::vector<std::string> stackValues, displayValues;
@@ -151,14 +152,14 @@ void Sub::printStacks() {
   // of the names
   maxStackWidth = std::max(maxStackWidth, NameRegistry::getMaxWidth());
 
-  if (stackValues.size() == 0) {
+  if (stackValues.empty()) {
     std::cout << "Empty stack." << std::endl;
     return;
   }
 
   // Print bar above headers - sum of all widths, plus 2 for each edge bar
   // and 3 for each column bar
-  std::string horizontalBar =
+  const std::string horizontalBar =
       " " + std::string(maxStackWidth + maxDisplayWidth + 7, '-');
   std::cout << horizontalBar << std::endl;
 
@@ -185,11 +186,11 @@ void Sub::printStacks() {
     std::cout << " | ";
 
     // Determine stack value and display value
-    std::cout << "Value stored at display index " << displayIdx << ": "
-              << display[displayIdx] << std::endl;
-    if (i == display[displayIdx]) { // We should also resolve the name
+    // std::cout << "Value stored at display index " << displayIdx << ": "
+    //           << display[displayIdx] << std::endl;
+    if (displayIdx < display.size() && i == display[displayIdx]) { // We should also resolve the name
       std::cout << std::setw(maxStackWidth)
-                << NameRegistry::getName(displayIdx);
+                << NameRegistry::getName(stack[i]);
       std::cout << " | ";
       std::cout << std::setw(maxDisplayWidth) << displayIdx;
       displayIdx++;
