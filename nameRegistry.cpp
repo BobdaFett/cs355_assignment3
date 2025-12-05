@@ -1,11 +1,12 @@
 #include "nameRegistry.h"
+#include <algorithm>
 #include <vector>
 
 std::vector<std::string> NameRegistry::names{};
 
-int NameRegistry::addName(const std::string name) {
+int NameRegistry::addName(const std::string& name) {
   for (int i = 0; i < names.size(); i++) {
-    if (names[i] == "") {
+    if (names[i].empty()) {
       names[i] = name;
       return i;
     }
@@ -15,24 +16,24 @@ int NameRegistry::addName(const std::string name) {
   return names.size() - 1;
 }
 
-void NameRegistry::removeName(const std::string name) {
-  for (int i = 0; i < names.size(); i++) {
-    if (names[i] == name) {
-      names[i] = "";
+void NameRegistry::removeName(const std::string& name) {
+  for (std::string &i : names) {
+    if (i == name) {
+      i = "";
       break;
     }
   }
 }
 
-std::string NameRegistry::getName(int index) {
-  std::string result = "";
+std::string NameRegistry::getName(const int index) {
+  std::string result;
   if (index < names.size() && index >= 0)
     result = names[index];
 
   return result;
 }
 
-int NameRegistry::getIndex(const std::string name) {
+int NameRegistry::getIndex(const std::string& name) {
   int result = -1;
   for (int i = 0; i < names.size(); i++) {
     if (names[i] == name) {

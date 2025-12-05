@@ -44,8 +44,8 @@ void test_caller_lower_depth() {
   std::cout << "Calls at lower depths should work, resulting in no errors.\n" << std::endl;
 
   Sub mainFunc("main_", nullptr, 0, 0);
-  Sub sub1("sub2", &mainFunc, 0, 0);
-  Sub sub2("sub3", &sub2, 0, 0);
+  Sub sub1("sub1", &mainFunc, 0, 0);
+  Sub sub2("sub2", &sub2, 0, 0);
 
   mainFunc.call_();
   sub1.call_();
