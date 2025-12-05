@@ -22,6 +22,8 @@ public:
   static int getIndex(const std::string name);
   /// Gets the maximum width of the names in the registry.
   static int getMaxWidth();
+  /// Clears all names from the registry.
+  static void clear();
 
 protected:
   static std::vector<std::string> names;

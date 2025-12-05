@@ -51,3 +51,5 @@ int NameRegistry::getMaxWidth() {
   }
   return maxWidth;
 }
+
+void NameRegistry::clear() { names.clear(); }
