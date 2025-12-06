@@ -5,6 +5,9 @@ This program does not have any deficiencies that I am aware of, however, I was n
 was the correct way to keep track of the currently running Subs. In lieu of the ban on searching through the
 stack and cross-referencing pushed Sub names, I decided that a vector<Sub*> was the cleanest solution.
 
+I did add a NameRegistry class that keeps track of all the Sub names that were created. This made getting the Sub names
+slightly easier, and I defined some extra quality-of-life methods for logging.
+
 1) test_call_non_main()
     One of the rules for the Sub class is that the first called subprogram must be named "main_". This test defines two
     Subs - one named "main_" and one named "sub_". It then calls "sub_" as the first subprogram. This should fail, since
