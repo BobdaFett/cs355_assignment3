@@ -12,6 +12,7 @@
 std::vector<int> Sub::stack{};
 std::vector<int> Sub::display{};
 std::vector<int> Sub::nameLocations{};
+std::vector<const Sub*> Sub::callers{};
 
 Sub::Sub(const std::string& name, Sub *staticParent, const int numParams,
          const int numLocals)
@@ -34,6 +35,7 @@ Sub::Sub(const std::string& name, Sub *staticParent, const int numParams,
 
 void Sub::call_() const {
   // Check if this is the main program or if the name is visible.
+  if (stack.empty() && name != "main_") throw std::runtime_error("Must call function main_ first.");
   if (name == "main_" || isNameVisible()) {
     const int index = pushAriToStack();
 
@@ -46,9 +48,10 @@ void Sub::call_() const {
       // greater than the current depth, so increasing it by one is safe.
       display.push_back(index);
     }
+    callers.push_back(this);
   } else {
     throw std::runtime_error("Subprogram with name " + name +
-                             " is not visible, as subprogram " + staticParent->name +
+                             " is not visible, as static parent " + staticParent->name +
                              " is not currently in the display.");
   }
 }
@@ -57,33 +60,21 @@ bool Sub::isNameVisible() const {
   // This function is only visible if its static parent is contained in the stack and is covered
   // by the display (i.e. we check the stack indices indicated by the display and check the names at those locations)
 
-  for (const int stackIdx : display) {
-    const int nameIdx = stack[stackIdx];
-    std::string checkName = NameRegistry::getName(nameIdx);
-    if (checkName == staticParent->name) return true;
+  // Use the currentCaller pointer
+  const Sub* checkCaller = !callers.empty() ? callers.back() : nullptr;
+  while (checkCaller != nullptr) {
+    // Loop and check the current caller's children to see if the function is visible.
+    for (const Sub* child : checkCaller->children) {
+      if (child->name == name) return true;
+    }
+    checkCaller = checkCaller->staticParent;
   }
 
   return false;
 }
 
-bool Sub::isTopOfStack() const {
-  bool result = true;
-
-  // To test this, we're just going to build the ARI of this Sub backwards.
-  // This does assume that the Sub's numLocals and numParams members have not been changed
-  // since the Sub was called.
-  int currentStackIdx = stack.size() - 1;  // Start from the top of the stack.
-  const int numArgsLocals = numParams + numLocals;
-  for (int i = numArgsLocals - 1; i >= 0; i--) {
-    result = stack[currentStackIdx] == i ? result : false;
-    currentStackIdx--;
-  }
-
-  // Now we'll skip the display and dynamic link values, as we don't really have a way
-  // to check them. We will check the name instead.
-  result = stack[currentStackIdx - 2] == NameRegistry::getIndex(name) ? result : false;
-
-  return result;
+bool Sub::isMostRecentCaller() const {
+  return callers.back()->name == name;
 }
 
 int Sub::pushAriToStack() const {
@@ -118,7 +109,7 @@ int Sub::pushAriToStack() const {
 void Sub::return_() const {
   // We first need to check that this Sub is the top of the stack.
   // If it's not, we need to throw an error.
-  if (!isTopOfStack()) {
+  if (!isMostRecentCaller()) {
     throw std::runtime_error("Cannot return from subprogram " + name +
                              " as it is not at the top of the stack.");
   }
@@ -131,16 +122,17 @@ void Sub::return_() const {
   const int displayLink = stack.back();
   stack.pop_back(); // pop display link
   stack.pop_back(); // pop name index
-  nameLocations.pop_back(); // pop name location from list
+  nameLocations.pop_back(); // pop name location from the list
 
   // Restore display link
   display[staticDepth] = displayLink;
 
-  // Restore dynamic link (do we actually need to do anything with this?)
-  // The dynamic link is not used anywhere else.
+  // Pop the Sub pointer from the stack - it's no longer the executing function.
+  // This maintains the scope for all other functions in the stack, if any.
+  callers.pop_back();
 }
 
-void Sub::printStacks() {
+void Sub::printStacks(const std::string &message) {
   // We want to organize all information into a simple table containing two
   // columns - one for the stack and one for the display. The display column
   // will not print the value of the display at a specific index, but will
@@ -170,9 +162,12 @@ void Sub::printStacks() {
         std::max(maxDisplayWidth, static_cast<int>(displayValueStr.size()));
   }
 
-  // We also need to check the names registry to determine the maximum width
+  // We also need to check the name registry to determine the maximum width
   // of the names
   maxStackWidth = std::max(maxStackWidth, NameRegistry::getMaxWidth());
+
+  // All stack messages print with a message first.
+  std::cout << message << std::endl;
 
   if (stackValues.empty()) {
     std::cout << "Empty stack." << std::endl;
@@ -245,4 +240,5 @@ void Sub::clear() {
   stack.clear();
   display.clear();
   nameLocations.clear();
+  callers.clear();
 }
